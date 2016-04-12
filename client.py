@@ -78,7 +78,7 @@ def start_transaction():
 	aes = AES.new(k1, AES.MODE_CBC, auth_data_iv)
 	auth_data = aes.decrypt(encrypt_auth_data)
 
-	if paymentgateway_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
+	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
 		return {'status': "couldnt verify merchants response"}
 
 	if auth_data != 'everything is good':
@@ -124,7 +124,7 @@ def password():
 	block2 = aes.encrypt(block2)
 	encrypted_k6 = merchant_publickey.encrypt(k6)
 
-	response = requests.get("http://localhost:8001/password", data = {'k5': encrypted_k5, 'k6': encrypted_k6,
+	response = requests.post("http://localhost:8001/password", data = {'k5': encrypted_k5, 'k6': encrypted_k6,
 		'block1': block1, 'block2': block2})
 
 	data = response.json()
@@ -136,7 +136,7 @@ def password():
 	aes = AES.new(k6, AES.MODE_CBC, auth_data_iv)
 	auth_data = aes.decrypt(encrypt_auth_data)
 
-	if paymentgateway_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
+	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
 		return {'status': "couldnt verify merchants response"}
 
 	if auth_data != 'everything is good':
@@ -153,6 +153,62 @@ def password():
 
 	return {'status': 'first_phase_done', 'message': 'please send your OTP'}
 
+app.route("/otp", methods=['POST'])
+def send_otp():
+	if not request.json or not request.json.has_key('OTP'):
+		abort(400)
+
+	otp = request.json['OTP']
+	bank_publickey = bank.publickey()
+	paymentgateway_publickey = paymentgateway.publickey()
+	merchant_publickey = merchant.publickey()
+
+	encrypted_otp = bank_publickey.encrypt(encrypted_otp)
+	hash_otp = SHA512.new(hash_otp).hexdigest
+
+	k9 = Random.get_random_bytes(16)
+	iv1 = Random.get_random_bytes(16)
+	aes = AES.new(k9, AES.MODE_CBC, iv1)
+
+	block1 = encrypted_otp + hash_otp
+
+	encrypted_block1 = aes.encrypt(block1)
+	encrypted_k9 = paymentgateway_publickey.encrypt(k9)
+
+	k10 = Random.get_random_bytes(16)
+	iv2 = Random.get_random_bytes(16)
+	aes = AES.new(k9, AES.MODE_CBC, iv2)
+
+	auth_data = "here is my otp"
+	hash_auth_data = SHA512.new(auth_data).hexdigest
+	encrypted_block2 = aes.encrypt(hash_auth_data + auth_data)
+
+	encrypted_k10 = merchant_publickey.encrypt(k10)
+
+	response = requests.post('http://localhost:8001', data = {'block1': encrypted_block1,
+		'block2': encrypted_block2, 'iv1': iv1, 'iv2': 'iv2', 'k9': encrypted_k9,
+		'k10': encrypted_k10})
+
+	data = response.json()
+	bank_certificate = data['certificate']
+	encrypt_auth_data = data['authdata']
+	signed_auth_data = data['signature']
+	auth_data_iv = data['iv']
+
+	aes = AES.new(k6, AES.MODE_CBC, auth_data_iv)
+	auth_data = aes.decrypt(encrypt_auth_data)
+
+
+	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
+		return {'status': "couldnt verify merchants response"}
+
+	if auth_data != 'everything is good':
+		return {'status': 'wrong otp try again'}
+
+	if not bank_certificate:
+		return {'status': 'couldnt verify bank certificate'}
+
+	return {'status': 'done', 'message': 'your transaction was succesfull'}
 
 
 if __name__ = "__main__":
