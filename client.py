@@ -15,8 +15,6 @@ paymentgateway = RSA.generate(2048, random_generator)
 bank = RSA.generate(2048, random_generator)
 
 
-merchant_url = "http://localhost:8001"
-
 app = FlaskAPI(__name__)
 
 def message_digest(order_information, payment_information):
