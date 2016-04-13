@@ -162,7 +162,7 @@ def send_otp():
 	merchant_publickey = merchant.publickey()
 
 	encrypted_otp = bank_publickey.encrypt(encrypted_otp)
-	hash_otp = SHA512.new(hash_otp).hexdigest
+	hash_otp = SHA512.new(encrypted_otp).hexdigest
 
 	k9 = Random.get_random_bytes(16)
 	iv1 = Random.get_random_bytes(16)
