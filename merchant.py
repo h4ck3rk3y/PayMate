@@ -24,14 +24,14 @@ def first_message():
 	paymentgateway_publickey = paymentgateway.publickey()
 	bank_publickey = bank.publickey()
 
-	encrypted_pi = request['block1']
-	encrypted_oi = request['block2']
-	iv1 = request['iv1']
-	iv2 = request['iv2']
-	iv3 = request['iv3']
-	iv4 = request['iv4']
-	k1 = request['k1']
-	k2 = request['k2']
+	encrypted_pi = request.json['block1']
+	encrypted_oi = request.json['block2']
+	iv1 = request.json['iv1']
+	iv2 = request.json['iv2']
+	iv3 = request.json['iv3']
+	iv4 = request.json['iv4']
+	k1 = request.json['k1']
+	k2 = request.json['k2']
 
 	encrypted_k2 = merchant.decrypt(k2)
 	aes = AES.new(k2, AES.MODE_CFB, iv4)
@@ -90,12 +90,12 @@ def password():
 	if not request.json:
 		abort(400)
 
-	k5 = (request['k5'])
-	k6 = merchant.decrypt(request['k6'])
-	i5 = request['iv1']
-	i6 = request['i5']
-	block1 = request['block1']
-	block2 = request['block2']
+	k5 = request.json['k5']
+	k6 = merchant.decrypt(request.json['k6'])
+	i5 = request.json['iv1']
+	i6 = request.json['i5']
+	block1 = request.json['block1']
+	block2 = request.json['block2']
 
 	aes6 = AES.new(k6, AES.MODE_CFB, i6)
 
@@ -109,13 +109,14 @@ def password():
 	authdata = 'the customer is trying to send his pass, take it'
 	k7 = Random.get_random_bytes(16)
 	i7 = Random.get_random_bytes(16)
-	aes = Random.get_random_bytes(16)
-	encrypted_authdata = aes.decrypt(authdata)
-	signed_auth_data = merchant.sign(encrypted_authdata)
-	encrypted_k7 = paymentgateway_publickey.encrypt(k1)
+	aes = AES.new(k7, AES.MODE_CFB, i7)
 
-	data = {'k7': k7, 'i7': i7, 'authdata': encrypted_authdata, 'hash_authdata': hash_authdata,
-	'epassword': block1, 'k5', 'i5'}
+	encrypted_authdata = aes.encrypt(authdata)
+	signed_auth_data = merchant.sign(SHA512.new(encrypted_authdata).hexdigest())
+	encrypted_k7 = paymentgateway_publickey.encrypt(k7)
+
+	data = {'k7': encrypted_k7, 'i7': i7, 'authdata': encrypted_authdata, 'hash_authdata': hash_authdata,
+	'epassword': block1, 'k5', k5, 'i5': i5}
 
 	response = requests.post('http://loclahost:8002/password', data=data)
 
@@ -144,4 +145,59 @@ def password():
 
 app.route("/otp", methods=["POST"])
 def otp():
-	pass
+	if not request.json:
+		abort(400)
+
+	i9 = request.json['iv1']
+	i10 = request.json['iv2']
+	k9 =  request.json['k9']
+	k10 = merchant.decrypt(request.json['k10'])
+	block1 = request.json['block1']
+	block2 = request.json['block2']
+
+	aes10 = AES.new(k10, AES.MODE_CFB, iv2)
+
+	decrypt_block2 = aes10.decrypt(block2)
+	authdata = decrypt_block2[:-128]
+	hash_authdata = decrypt_block1[-128:]
+
+	if SHA512.new(authdata).hexdigest() != hash_authdata:
+		return 'hash of auth doesnt match'
+
+
+	authdata = 'the customer is trying to send his otp, take it'
+	k11 = Random.get_random_bytes(16)
+	i11 = Random.get_random_bytes(16)
+	aes = AES.new(k11, AES.MODE_CFB, i11)
+
+	encrypted_authdata = aes.encrypt(authdata)
+	signed_auth_data = merchant.sign(encrypted_authdata)
+	encrypted_k11 = paymentgateway_publickey.encrypt(k11)
+
+	data = {'k11': k11, 'i7': i11, 'authdata': encrypted_authdata, 'hash_authdata': signed_auth_data,
+	'epassword': block1, 'k9': k9, 'i9': i9}
+
+	response = requests.post('http://loclahost:8002/otp', data=data)
+
+	data = response.json()
+	encrypt_auth_data = data['authdata']
+	signed_auth_data = data['signature']
+	auth_data_iv = data['iv']
+	kx = merchant.decrypt(data['kx'])
+
+	aes = AES.new(kx, AES.MODE_CFB, auth_data_iv)
+	auth_data = aes.decrypt(encrypt_auth_data)
+
+	if paymentgateway_publickey.verify(SHA512.new(auth_data).hexdigest(), signed_auth_data) == False:
+		return {'status': "couldnt verify paymentgateway response"}
+
+	if auth_data != 'everything is good':
+		return {'status': 'something went wrong while starting transaction'}
+
+	auth_data = 'everything is good'
+	iv = Random.get_random_bytes(16)
+	aes = AES.new(k10, AES.MODE_CFB, iv)
+	encrypted_authdata = aes.encrypt(auth_data)
+	signature = merchant.sign(SHA512.new(signature).hexdigest())
+
+	return {'iv': iv, 'authdata': encrypted_authdata, 'signature': signature}
