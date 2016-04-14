@@ -104,7 +104,7 @@ def password():
 
 	k5 = Random.get_random_bytes(16)
 	iv1 = Random.get_random_bytes(16)
-	aes = AES.new(k6, AES.MODE_CFB, iv)
+	aes = AES.new(k5, AES.MODE_CFB, iv1)
 
 	block1 = aes.encrypt(block1)
 	encrypted_k5 = paymentgateway_publickey.encrypt(k5)
@@ -121,10 +121,9 @@ def password():
 	encrypted_k6 = merchant_publickey.encrypt(k6)
 
 	response = requests.post("http://localhost:8001/password", data = {'k5': encrypted_k5, 'k6': encrypted_k6,
-		'block1': block1, 'block2': block2})
+		'block1': block1, 'block2': block2, 'iv2': iv, 'iv1': iv})
 
 	data = response.json()
-	bank_certificate = data['certificate']
 	encrypt_auth_data = data['authdata']
 	signed_auth_data = data['signature']
 	auth_data_iv = data['iv']
@@ -137,15 +136,6 @@ def password():
 
 	if auth_data != 'everything is good':
 		return {'status': 'wrong password try again'}
-
-	if not bank_certificate:
-		return {'status': 'couldnt verify bank certificate'}
-
-	# password has been verrified.
-
-	# Note
-	# is bank certificate set everytime
-	# @ToDO add password counter
 
 	return {'status': 'first_phase_done', 'message': 'please send your OTP'}
 
@@ -186,7 +176,6 @@ def send_otp():
 		'k10': encrypted_k10})
 
 	data = response.json()
-	bank_certificate = data['certificate']
 	encrypt_auth_data = data['authdata']
 	signed_auth_data = data['signature']
 	auth_data_iv = data['iv']
@@ -201,8 +190,6 @@ def send_otp():
 	if auth_data != 'everything is good':
 		return {'status': 'wrong otp try again'}
 
-	if not bank_certificate:
-		return {'status': 'couldnt verify bank certificate'}
 
 	return {'status': 'done', 'message': 'your transaction was succesfull'}
 
