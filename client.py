@@ -22,9 +22,9 @@ def message_digest(order_information, payment_information):
 	iv = Random.get_random_bytes(16)
 	oimd = SHA512.new(order_information).hexdigest()
 	pimd = SHA512.new(payment_information).hexdigest()
-	pomd = oimd + pomd
+	pomd = SHA512.new(oimd + pomd).hexdigest()
 	unencrypted_digest = pomd
-	aes = AES.new(key, AES.MODE_CBC, iv)
+	aes = AES.new(key, AES.MODE_CFB, iv)
 	pomd = aes.encrypt(pomd)
 	return pomd, key, iv, oimd, pimd, unencrypted_digest
 
@@ -44,24 +44,22 @@ def start_transaction():
 	#pomd2 generated for merchant
 	k2 = Random.get_random_bytes(16)
 	iv2 = Random.get_random_bytes(16)
-	aes = AES.new(k2, AES.MODE_CBC, iv2)
+	aes = AES.new(k2, AES.MODE_CFB, iv2)
 	pomd2 = aes.encrypt(unencrypted_digest)
 
 	#payment gateway
 	iv3 = Random.get_random_bytes(16)
-	aes = AES.new(k2, AES.MODE_CBC, iv3)
+	aes = AES.new(k2, AES.MODE_CFB, iv3)
 	block1 = payment_information + pomd2 + oimd
 	block1 = aes.encrypt(block1)
 	encrypted_k2 = paymentgateway_publickey.encrypt(k2)
-	block1 = block1
 
 	#merchant
 	iv4 = Random.get_random_bytes(16)
-	aes = AES.new(k1, AES.MODE_CBC, iv4)
+	aes = AES.new(k1, AES.MODE_CFB, iv4)
 	block2 = order_information + pomd + pimd
 	block2 = aes.encrypt(block2)
 	encrypted_k1 = merchant_publickey.encrypt(k1)
-	block2 = block2
 
 	response = requests.post("http://localhost:8001/start/", data = json.dumps({'block1': block1,
 		'block2': block2, 'iv1': iv1, 'iv2': iv2, 'iv3':iv3, 'iv4': iv4
@@ -73,10 +71,10 @@ def start_transaction():
 	signed_auth_data = data['signature']
 	auth_data_iv = data['iv']
 
-	aes = AES.new(k1, AES.MODE_CBC, auth_data_iv)
+	aes = AES.new(k1, AES.MODE_CFB, auth_data_iv)
 	auth_data = aes.decrypt(encrypt_auth_data)
 
-	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
+	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest(), signed_auth_data) == False:
 		return {'status': "couldnt verify merchants response"}
 
 	if auth_data != 'everything is good':
@@ -101,23 +99,23 @@ def password():
 	merchant_publickey = merchant.publickey()
 
 	encrypted_password = bank_publickey.encrypt(password)
-	encrypted_hash = SHA512.new(encrypted_password).hexdigest
+	encrypted_hash = SHA512.new(encrypted_password).hexdigest()
 	block1 = encrypted_password + encrypted_hash
 
 	k5 = Random.get_random_bytes(16)
 	iv1 = Random.get_random_bytes(16)
-	aes = AES.new(k6, AES.MODE_CBC, iv)
+	aes = AES.new(k6, AES.MODE_CFB, iv)
 
 	block1 = aes.encrypt(block1)
 	encrypted_k5 = paymentgateway_publickey.encrypt(k5)
 
 	authdata = "hi this is my password"
-	hased_authdata = SHA512.new(authdata).hexdigest
+	hased_authdata = SHA512.new(authdata).hexdigest()
 	block2 = authdata + hased_authdata
 
 	k6 = Random.get_random_bytes(16)
 	iv2 = Random.get_random_bytes(16)
-	aes = AES.new(k6, AES.MODE_CBC, iv2)
+	aes = AES.new(k6, AES.MODE_CFB, iv2)
 
 	block2 = aes.encrypt(block2)
 	encrypted_k6 = merchant_publickey.encrypt(k6)
@@ -131,10 +129,10 @@ def password():
 	signed_auth_data = data['signature']
 	auth_data_iv = data['iv']
 
-	aes = AES.new(k6, AES.MODE_CBC, auth_data_iv)
+	aes = AES.new(k6, AES.MODE_CFB, auth_data_iv)
 	auth_data = aes.decrypt(encrypt_auth_data)
 
-	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
+	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest(), signed_auth_data) == False:
 		return {'status': "couldnt verify merchants response"}
 
 	if auth_data != 'everything is good':
@@ -162,11 +160,11 @@ def send_otp():
 	merchant_publickey = merchant.publickey()
 
 	encrypted_otp = bank_publickey.encrypt(encrypted_otp)
-	hash_otp = SHA512.new(encrypted_otp).hexdigest
+	hash_otp = SHA512.new(encrypted_otp).hexdigest()
 
 	k9 = Random.get_random_bytes(16)
 	iv1 = Random.get_random_bytes(16)
-	aes = AES.new(k9, AES.MODE_CBC, iv1)
+	aes = AES.new(k9, AES.MODE_CFB, iv1)
 
 	block1 = encrypted_otp + hash_otp
 
@@ -175,10 +173,10 @@ def send_otp():
 
 	k10 = Random.get_random_bytes(16)
 	iv2 = Random.get_random_bytes(16)
-	aes = AES.new(k9, AES.MODE_CBC, iv2)
+	aes = AES.new(k9, AES.MODE_CFB, iv2)
 
 	auth_data = "here is my otp"
-	hash_auth_data = SHA512.new(auth_data).hexdigest
+	hash_auth_data = SHA512.new(auth_data).hexdigest()
 	encrypted_block2 = aes.encrypt(hash_auth_data + auth_data)
 
 	encrypted_k10 = merchant_publickey.encrypt(k10)
@@ -193,11 +191,11 @@ def send_otp():
 	signed_auth_data = data['signature']
 	auth_data_iv = data['iv']
 
-	aes = AES.new(k6, AES.MODE_CBC, auth_data_iv)
+	aes = AES.new(k6, AES.MODE_CFB, auth_data_iv)
 	auth_data = aes.decrypt(encrypt_auth_data)
 
 
-	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest, signed_auth_data) == False:
+	if merchant_publickey.verify(SHA512.new(auth_data).hexdigest(), signed_auth_data) == False:
 		return {'status': "couldnt verify merchants response"}
 
 	if auth_data != 'everything is good':
