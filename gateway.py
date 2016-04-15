@@ -65,8 +65,51 @@ def start():
 	signature = paymentgateway.sign(SHA512.new(authdata).hexdigest())
 	aes = AES.new(k4, AES.MODE_CFB, iv)
 	authdata = aes.encrypt()
+	k4 = paymentgateway.encrypt(k4)
 
 	data = {'authdata': authdata, 'k4': k4, 'iv': iv, 'signature': signature, 'certificate': data['certificate']}
 
 	return data
 
+app.route("/password", methods=["POST"])
+def password():
+	if not request.json:
+		abort(400)
+
+	k7 = paymentgateway.decrypt(request['k7'])
+	i7 = request['i7']
+	authdata = request['authdata']
+	hash_authdata = request['hash_authdata']
+	epassword  = request['epassword']
+	k5 = paymentgateway.decrypt(request['k5'])
+	i5 = request['i5']
+
+	aes = AES.new(k7, AES.MODE_CFB, i7)
+	authdata = aes.decrypt(authdata)
+
+	if SHA512.new(authdata).hexdigest() != SHA512.hash_authdata:
+		return 'auth data doesnt verify hash'
+
+	aes = AES.new(k5, AES.MODE_CFB, i5)
+	password = aes.decrypt(epassword)
+
+	pas_auth = password[-128:]
+	encryptedpassword = password[:-128]
+
+	response = request.post("http://localhost:8002/password", {'encryptedpassword': password, 'authdata': 'hello'})
+
+	data = request.json()
+	authdata = data['authdata']
+
+	if authdata != 'the passwords match':
+		return 'error, passwords dont match'
+
+	authdata = 'everything is good'
+	signature = paymentgateway.sign(SHA512.new(authdata).hexdigest)
+	k1 = Random.get_random_bytes(16)
+	i1 = Random.get_random_bytes(16)
+	aes = AES.new(k1, AES.MODE_CFB, i1)
+	encrypted_authdata =aes.encrypt(authdata)
+	k1 = paymentgateway.encrypt(k1)
+
+	return {'authdata': authdata, 'k4': k1, 'i4': i1, 'signature': signature}
