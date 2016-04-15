@@ -33,10 +33,10 @@ def first_message():
 	k1 = request.json['k1']
 	k2 = request.json['k2']
 
-	encrypted_k2 = merchant.decrypt(k2)
-	aes = AES.new(k2, AES.MODE_CFB, iv4)
+	k1 = merchant.decrypt(k1)
+	aes = AES.new(k1, AES.MODE_CFB, iv4)
 	oi = aes.decrypt(encrypted_oi)
-	aes = AES.new(k2, AES.MODE_CFB, iv1)
+	aes = AES.new(k1, AES.MODE_CFB, iv1)
 	pimd =  oi[-128:]
 	pomd =  aes.decrypt(oi[-256:-128])
 	oi = oi[:-256]
@@ -55,7 +55,7 @@ def first_message():
 	encrypted_k3 = paymentgateway_publickey.encrypt(k3)
 	hash_authdata = merchant.sign(SHA512.new(authdata).hexdigest())
 
-	data = {'authdata': authdata, 'k3': encrypted_k3, 'hash_authdata', 'pi': encrypted_pi, 'k1': k1, 'iv2': iv2, 'iv3': 'iv3': 'iv5': 'iv5'}
+	data = {'authdata': authdata, 'k3': encrypted_k3, 'hash_authdata', 'pi': encrypted_pi, 'k2': k2, 'iv2': iv2, 'iv3': 'iv3': 'iv5': iv5}
 	response = requests.post('http://localhost:8002/start', data = data)
 
 	data = response.json()
@@ -201,3 +201,6 @@ def otp():
 	signature = merchant.sign(SHA512.new(signature).hexdigest())
 
 	return {'iv': iv, 'authdata': encrypted_authdata, 'signature': signature}
+
+if '__name__' == '__main__':
+	app.run(debug=True, port='8001')
