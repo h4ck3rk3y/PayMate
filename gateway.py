@@ -49,7 +49,7 @@ def start():
 
 	authrequest = "hi this guy wants to transact"
 
-	response = requests.post("http://localhost:/8002/start", data = {'authrequest': authrequest, 'pi': pi})
+	response = requests.post("http://localhost:/8003/start", data = {'authrequest': authrequest, 'pi': pi})
 
 	data = response.json()
 
@@ -96,7 +96,10 @@ def password():
 	pas_auth = password[-128:]
 	encryptedpassword = password[:-128]
 
-	response = request.post("http://localhost:8002/password", {'encryptedpassword': password, 'authdata': 'hello'})
+	if SHA512.new(encrypted_otp) != encryptedpassword:
+		return 'password corrupted while sending'
+
+	response = request.post("http://localhost:8003/password", {'encryptedpassword': encryptedpassword, 'authdata': 'hello'})
 
 	data = request.json()
 	authdata = data['authdata']
@@ -113,3 +116,51 @@ def password():
 	k1 = paymentgateway.encrypt(k1)
 
 	return {'authdata': authdata, 'k4': k1, 'i4': i1, 'signature': signature}
+
+app.route("/otp", methods=["POST"])
+def otp():
+	if not request.json:
+		abort(400)
+
+	k11 = paymentgateway.decrypt(request['k11'])
+	i11 = request['i11']
+	authdata = request['authdata']
+	hash_authdata = request['hash_authdata']
+	eotp  = request['eotp']
+	k9 = paymentgateway.decrypt(request['k9'])
+	i9 = request['i9']
+
+	aes = AES.new(k11, AES.MODE_CFB, i11)
+	authdata = aes.decrypt(authdata)
+
+	if SHA512.new(authdata).hexdigest() != SHA512.hash_authdata:
+		return 'auth data doesnt verify hash'
+
+	aes = AES.new(k5, AES.MODE_CFB, i5)
+	otp = aes.decrypt(eotp)
+
+	pas_auth = otp[-128:]
+	encrypted_otp = otp[:-128]
+
+
+	if SHA512.new(encrypted_otp) != pas_auth:
+		return 'otp corrupted while sending'
+
+
+	response = request.post("http://localhost:8003/otp", {'encrypted_otp': encrypted_otp, 'authdata': 'hello'})
+
+	data = request.json()
+	authdata = data['authdata']
+
+	if authdata != 'the otp matches':
+		return 'error, otp dont match'
+
+	authdata = 'everything is good'
+	signature = paymentgateway.sign(SHA512.new(authdata).hexdigest)
+	k1 = Random.get_random_bytes(16)
+	i1 = Random.get_random_bytes(16)
+	aes = AES.new(k1, AES.MODE_CFB, i1)
+	encrypted_authdata =aes.encrypt(authdata)
+	k1 = paymentgateway.encrypt(k1)
+
+	return {'authdata': authdata, 'kx': k1, 'iv': i1, 'signature': signature}

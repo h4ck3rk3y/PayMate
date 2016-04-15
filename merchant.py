@@ -175,7 +175,7 @@ def otp():
 	encrypted_k11 = paymentgateway_publickey.encrypt(k11)
 
 	data = {'k11': k11, 'i7': i11, 'authdata': encrypted_authdata, 'hash_authdata': signed_auth_data,
-	'epassword': block1, 'k9': k9, 'i9': i9}
+	'eotp': block1, 'k9': k9, 'i9': i9}
 
 	response = requests.post('http://loclahost:8002/otp', data=data)
 
