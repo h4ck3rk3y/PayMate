@@ -55,7 +55,7 @@ def first_message():
 	encrypted_k3 = paymentgateway_publickey.encrypt(k3)
 	hash_authdata = merchant.sign(SHA512.new(authdata).hexdigest())
 
-	data = {'authdata': authdata, 'k3': encrypted_k3, 'hash_authdata', 'pi': encrypted_pi, 'k2': k2, 'iv2': iv2, 'iv3': 'iv3': 'iv5': iv5}
+	data = {'authdata': authdata, 'k3': encrypted_k3, 'hash_authdata': hash_authdata, 'pi': encrypted_pi, 'k2': k2, 'iv2': iv2, 'iv3': iv3, 'iv5': iv5}
 	response = requests.post('http://localhost:8002/start', data = data)
 
 	data = response.json()
@@ -116,7 +116,7 @@ def password():
 	encrypted_k7 = paymentgateway_publickey.encrypt(k7)
 
 	data = {'k7': encrypted_k7, 'i7': i7, 'authdata': encrypted_authdata, 'hash_authdata': hash_authdata,
-	'epassword': block1, 'k5', k5, 'i5': i5}
+	'epassword': block1, 'k5': k5, 'i5': i5}
 
 	response = requests.post('http://loclahost:8002/password', data=data)
 
@@ -202,5 +202,4 @@ def otp():
 
 	return {'iv': iv, 'authdata': encrypted_authdata, 'signature': signature}
 
-if '__name__' == '__main__':
-	app.run(debug=True, port='8001')
+app.run(debug=True, port=8001)

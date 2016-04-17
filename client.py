@@ -62,7 +62,7 @@ def start_transaction():
 	encrypted_k1 = merchant_publickey.encrypt(k1)
 
 	response = requests.post("http://localhost:8001/start/", data = json.dumps({'block1': block1,
-		'block2': block2, 'iv1': iv1, 'iv2': iv2, 'iv3':iv3, 'iv4': iv4
+		'block2': block2, 'iv1': iv1, 'iv2': iv2, 'iv3':iv3, 'iv4': iv4,
 		'k1': encrypted_k1, 'k2': encrypted_k2}))
 
 	data = response.json()
@@ -194,5 +194,4 @@ def send_otp():
 	return {'status': 'done', 'message': 'your transaction was succesfull'}
 
 
-if __name__ = "__main__":
-	app.run(debug=True, port=8000)
+app.run(debug=True, port=8000)

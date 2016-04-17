@@ -37,7 +37,7 @@ def password():
 		abort(400)
 
 	if not request.json.has_key('encryptedpassword') and request.json.has_key('authdata'):
-		return return {'authdata' : 'error'}
+		return {'authdata' : 'error'}
 
 	if request.json['authdata'] != 'hello':
 		return {'authdata': 'authdata corrupted'}
@@ -57,7 +57,7 @@ def password():
 		abort(400)
 
 	if not request.json.has_key('encrypted_otp') and request.json.has_key('authdata'):
-		return return {'authdata' : 'error'}
+		return {'authdata' : 'error'}
 
 	if request.json['authdata'] != 'hello':
 		return {'authdata': 'authdata corrupted'}
@@ -70,5 +70,4 @@ def password():
 
 	return {'authdata': 'the otp matches'}
 
-if '__name__' == '__main__':
-	app.run(debug=True, port = 8003)
+app.run(debug=True, port = 8003)

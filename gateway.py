@@ -164,3 +164,5 @@ def otp():
 	k1 = paymentgateway.encrypt(k1)
 
 	return {'authdata': authdata, 'kx': k1, 'iv': i1, 'signature': signature}
+
+app.run(debug=True, port=8002)
