@@ -1,6 +1,6 @@
 #PayMate
 
-For our network security project we are to make a secure and robust electronic payment system.
+For our network security project we are to make a secure and robust electronic payment system. We implement a 2 factor authentication based payment protocol in which the customer needs to certificate. The implementation is RESTFUL.
 
 ##Relevant Research Papers
 
@@ -20,3 +20,5 @@ For our network security project we are to make a secure and robust electronic p
 
 ##Stack
 Python
+Flask-Api
+PyCrpyto
