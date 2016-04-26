@@ -8,12 +8,6 @@ import requests
 import json
 from keys import *
 
-random_generator = Random.new().read
-#RSA Pickles will be made and saved.
-merchant = RSA.generate(2048, random_generator)
-paymentgateway = RSA.generate(2048, random_generator)
-bank = RSA.generate(2048, random_generator)
-
 
 app = FlaskAPI(__name__)
 
