@@ -4,6 +4,7 @@ from flask import abort
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA512
 from Crypto.PublicKey import RSA
+from Crypto import Random
 import requests
 import json
 from keys import *
@@ -54,6 +55,8 @@ def start_transaction():
 	block2 = order_information + pomd + pimd
 	block2 = aes.encrypt(block2)
 	encrypted_k1 = merchant_publickey.encrypt(k1)
+
+	print data
 
 	response = requests.post("http://localhost:8001/start/", data = json.dumps({'block1': block1,
 		'block2': block2, 'iv1': iv1, 'iv2': iv2, 'iv3':iv3, 'iv4': iv4,
