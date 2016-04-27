@@ -11,7 +11,7 @@ from Crypto import Random
 
 
 app = FlaskAPI(__name__)
-app.route("/start", methods=["POST"])
+@app.route("/start", methods=["POST"])
 
 def start():
 	if not request.json:
@@ -67,7 +67,7 @@ def start():
 
 	return data
 
-app.route("/password", methods=["POST"])
+@app.route("/password", methods=["POST"])
 def password():
 	if not request.json:
 		abort(400)
@@ -113,7 +113,7 @@ def password():
 
 	return {'authdata': authdata, 'k4': k1, 'i4': i1, 'signature': signature}
 
-app.route("/otp", methods=["POST"])
+@app.route("/otp", methods=["POST"])
 def otp():
 	if not request.json:
 		abort(400)

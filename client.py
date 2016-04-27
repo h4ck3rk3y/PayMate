@@ -12,24 +12,31 @@ from keys import *
 
 app = FlaskAPI(__name__)
 
+
+
+@app.route('/')
+def api_root():
+    return 'Welcome'
+
 def message_digest(order_information, payment_information):
 	key = Random.get_random_bytes(16)
 	iv = Random.get_random_bytes(16)
 	oimd = SHA512.new(order_information).hexdigest()
 	pimd = SHA512.new(payment_information).hexdigest()
-	pomd = SHA512.new(oimd + pomd).hexdigest()
+	pomd = SHA512.new(oimd + pimd).hexdigest()
 	unencrypted_digest = pomd
 	aes = AES.new(key, AES.MODE_CFB, iv)
 	pomd = aes.encrypt(pomd)
 	return pomd, key, iv, oimd, pimd, unencrypted_digest
 
-app.route("/newtransaction", methods=['POST'])
+@app.route("/newtransaction", methods=['POST'])
 def start_transaction():
 	if not request.json or not request.json.has_key('OI') or not request.json.has_key('PI'):
 		abort(400)
 
 	order_information = request.json['OI']
 	payment_information = request.json['PI']
+
 
 	pomd, k1, iv1, oimd, pimd, unencrypted_digest = message_digest(order_information, payment_information)
 	merchant_publickey = merchant.publickey()
@@ -45,6 +52,7 @@ def start_transaction():
 	#payment gateway
 	iv3 = Random.get_random_bytes(16)
 	aes = AES.new(k2, AES.MODE_CFB, iv3)
+
 	block1 = payment_information + pomd2 + oimd
 	block1 = aes.encrypt(block1)
 	encrypted_k2 = paymentgateway_publickey.encrypt(k2)
@@ -85,7 +93,7 @@ def start_transaction():
 	return {'status': 'first_phase_done', 'message': 'please send your password'}
 
 
-app.route("/password", methods=['POST'])
+@app.route("/password", methods=['POST'])
 def password():
 	if not request.json or not request.json.has_key('password'):
 		abort(400)
@@ -136,7 +144,7 @@ def password():
 
 	return {'status': 'first_phase_done', 'message': 'please send your OTP'}
 
-app.route("/otp", methods=['POST'])
+@app.route("/otp", methods=['POST'])
 def send_otp():
 	if not request.json or not request.json.has_key('OTP'):
 		abort(400)
